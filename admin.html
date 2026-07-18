@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ самбар — Шинэжинст сум</title>
+<link rel="stylesheet" href="style.css">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { padding-top: 72px; }
+  .admin-wrap { max-width: 1100px; margin: 0 auto; padding: 50px 6%; }
+  .admin-header { text-align:center; margin-bottom: 40px; }
+  .admin-header h1 { font-family:'Playfair Display',serif; font-size: clamp(26px,4vw,38px); margin-bottom:8px; }
+  .admin-header p { color: var(--text-muted); }
+  .admin-stats { display:flex; flex-wrap:wrap; gap:16px; margin-bottom:36px; }
+  .admin-stat { flex:1; min-width:160px; background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:20px; text-align:center; box-shadow:0 4px 16px var(--shadow); }
+  .admin-stat .num { font-family:'Playfair Display',serif; font-size:32px; font-weight:700; color:var(--gold); }
+  .admin-stat .lbl { font-size:13px; color:var(--text-muted); margin-top:4px; }
+  .admin-panel { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; box-shadow:0 4px 20px var(--shadow); margin-bottom:32px; overflow:hidden; }
+  .admin-panel h2 { font-family:'Playfair Display',serif; font-size:20px; padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+  .admin-panel h2 i { color: var(--gold); }
+  table.admin-table { width:100%; border-collapse: collapse; font-size:14px; }
+  table.admin-table th { text-align:left; padding:12px 16px; background:var(--bg2); color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+  table.admin-table td { padding:12px 16px; border-top:1px solid var(--border); vertical-align:top; }
+  table.admin-table tr:hover td { background: var(--bg2); }
+  .empty-row td { text-align:center; color:var(--text-muted); padding:30px; }
+  .badge-role { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700; }
+  .badge-admin { background: var(--gold-pale); color: var(--gold); }
+  .badge-user { background: var(--bg2); color: var(--text-muted); }
+
+  #adminGate { max-width:420px; margin:80px auto; background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:40px; text-align:center; box-shadow:0 4px 20px var(--shadow); }
+  #adminGate h2 { font-family:'Playfair Display',serif; margin-bottom:10px; }
+  #adminGate p { color:var(--text-muted); margin-bottom:20px; font-size:14px; line-height:1.7; }
+  #adminGate input { width:100%; padding:12px 16px; border-radius:10px; border:2px solid var(--border); background:var(--bg); color:var(--text); margin-bottom:12px; font-family:'Nunito',sans-serif; font-size:15px; outline:none; }
+  #adminGate .btn { width:100%; }
+  #gateMsg { margin-top:14px; font-size:14px; font-weight:700; display:none; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="index.html" class="logo">
+    <div class="logo-text">Шинэжинст сум<span>Админ самбар</span></div>
+  </a>
+  <a href="index.html" class="btn btn-secondary" style="text-decoration:none;"><i class='bx bx-arrow-back'></i> Нүүр хуудас</a>
+</header>
+
+<!-- ══ НЭВТРЭХ ХАШИЛТ ══ -->
+<div id="adminGate">
+  <h2>Админ нэвтрэлт</h2>
+  <p>Энэ хуудас зөвхон админ эрхтэй хэрэглэгчдэд зориулагдсан. Та энгийн бүртгэлээрээ нэвтэрч болно — "admins" жагсаалтад орсон хаяг л энэ мэдээллийг харах эрхтэй.</p>
+  <input id="gateEmail" type="text" placeholder="И-мэйл эсвэл утасны дугаар">
+  <input id="gatePassword" type="password" placeholder="Нууц үг">
+  <button class="btn btn-primary" onclick="adminLogin()"><i class='bx bx-log-in'></i> Нэвтрэх</button>
+  <p id="gateMsg"></p>
+</div>
+
+<!-- ══ АДМИН САМБАР ══ -->
+<div class="admin-wrap" id="adminDashboard" style="display:none;">
+  <div class="admin-header">
+    <h1>Админ самбар</h1>
+    <p>Бүртгэлтэй хэрэглэгчид болон ирсэн санал хүсэлтийг бодит цагт хянана</p>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat"><div class="num" id="statUsers">–</div><div class="lbl">Бүртгэлтэй хэрэглэгч</div></div>
+    <div class="admin-stat"><div class="num" id="statFeedback">–</div><div class="lbl">Санал хүсэлт</div></div>
+    <div class="admin-stat"><div class="num" id="statAdmins">–</div><div class="lbl">Идэвхтэй админ</div></div>
+  </div>
+
+  <div class="admin-panel">
+    <h2><i class='bx bx-group'></i> Бүртгүүлсэн / нэвтэрсэн хэрэглэгчид</h2>
+    <div style="overflow-x:auto;">
+      <table class="admin-table">
+        <thead><tr><th>Нэр</th><th>Имэйл / Утас</th><th>Эрх</th><th>Бүртгүүлсэн</th><th>Сүүлд нэвтэрсэн</th></tr></thead>
+        <tbody id="usersTableBody"><tr class="empty-row"><td colspan="5">Ачаалж байна...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="admin-panel">
+    <h2><i class='bx bx-message-detail'></i> Ирсэн санал хүсэлтүүд</h2>
+    <div style="overflow-x:auto;">
+      <table class="admin-table">
+        <thead><tr><th>Нэр</th><th>Холбоо барих</th><th>Гарчиг</th><th>Мессеж</th><th>Огноо</th></tr></thead>
+        <tbody id="feedbackTableBody"><tr class="empty-row"><td colspan="5">Ачаалж байна...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="admin-panel">
+    <h2><i class='bx bx-medal'></i> Гавьяат хүн нэмэх</h2>
+    <div style="padding:24px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">Ангилал</label>
+          <select id="honoreeCategory" style="width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+            <option value="gav-alba">Шилдэг төрийн албан хаагчид</option>
+            <option value="gav-bagsh">Алдарт Багш нар</option>
+            <option value="gav-emch">Гавьяат эмч нар</option>
+            <option value="gav-soyl">Соёл урлагийн гавьяат</option>
+            <option value="gav-sport">Спортын гавьяат тамирчид</option>
+            <option value="gav-malchin">Гавьяат малчид</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">Нэр</label>
+          <input id="honoreeName" type="text" placeholder="Овог Нэр" style="width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">Албан тушаал / Гавьяа</label>
+          <input id="honoreeRole" type="text" placeholder="жш: Гавьяат багш" style="width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">Зургийн URL (заавал биш)</label>
+          <input id="honoreePhoto" type="text" placeholder="https://... эсвэл photo/name.jpg" style="width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">Товч намтар</label>
+        <textarea id="honoreeBio" rows="4" placeholder="3–5 өгүүлбэрээр товч намтрыг бичнэ үү..." style="width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;outline:none;resize:vertical;"></textarea>
+      </div>
+      <button id="honoreeSubmitBtn" class="btn btn-primary" onclick="addHonoree()"><i class='bx bx-user-plus'></i> Нэмэх</button>
+      <button id="honoreeCancelBtn" class="btn btn-outline" style="display:none;margin-left:12px;" onclick="resetHonoreeForm()"><i class='bx bx-x'></i> Болих</button>
+      <p id="honoreeMsg" style="display:none;margin-top:12px;font-size:14px;font-weight:700;"></p>
+    </div>
+    <div style="overflow-x:auto;border-top:1px solid var(--border);">
+      <table class="admin-table">
+        <thead><tr><th>Ангилал</th><th>Нэр</th><th>Тушаал/Гавьяа</th><th>Огноо</th><th></th></tr></thead>
+        <tbody id="honoreesTableBody"><tr class="empty-row"><td colspan="5">Ачаалж байна...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <button class="btn btn-secondary" onclick="auth.signOut()"><i class='bx bx-log-out'></i> Гарах</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+  // ⚠️ index.html дээрхтэй ЯГ АДИЛ Firebase тохиргоог энд тавина.
+  const firebaseConfig = {
+    apiKey: "AIzaSyD5UeNgVXwD004Rk5Z_bkou4gED86wE-qY",
+    authDomain: "shinejinst-sum.firebaseapp.com",
+    projectId: "shinejinst-sum",
+    storageBucket: "shinejinst-sum.firebasestorage.app",
+    messagingSenderId: "972761818986",
+    appId: "1:972761818986:web:550c0f49d684ff2b816713"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  function fmtDate(ts) {
+    if (!ts || !ts.toDate) return '—';
+    return ts.toDate().toLocaleString('mn-MN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function adminLogin() {
+    const msg = document.getElementById('gateMsg');
+    msg.style.display = 'none';
+    const rawEmail = document.getElementById('gateEmail').value.trim();
+    const password = document.getElementById('gatePassword').value.trim();
+    if (!rawEmail || !password) {
+      msg.style.display = 'block'; msg.style.color = '#e53935';
+      msg.textContent = '⚠️ И-мэйл болон нууц үгээ оруулна уу.';
+      return;
+    }
+    const email = rawEmail.includes('@') ? rawEmail : `${rawEmail}@shinejinst.local`;
+    auth.signInWithEmailAndPassword(email, password).catch(() => {
+      msg.style.display = 'block'; msg.style.color = '#e53935';
+      msg.textContent = '⚠️ Имэйл эсвэл нууц үг буруу байна.';
+    });
+  }
+
+  const CATEGORY_LABELS = {
+    'gav-alba': 'Шилдэг төрийн албан хаагчид',
+    'gav-bagsh': 'Алдарт Багш нар',
+    'gav-emch': 'Гавьяат эмч нар',
+    'gav-soyl': 'Соёл урлагийн гавьяат',
+    'gav-sport': 'Спортын гавьяат тамирчид',
+    'gav-malchin': 'Гавьяат малчид'
+  };
+
+  const HONOREE_DEFAULT_IMAGES = {
+    'gav-alba': 'photo/Alba.png',
+    'gav-bagsh': 'photo/bagshnar.png',
+    'gav-emch': 'photo/emchnar.jpg',
+    'gav-soyl': 'photo/Hogjim.jpg',
+    'gav-sport': 'photo/sport.png',
+    'gav-malchin': 'photo/5mal.jpeg'
+  };
+
+  let editingHonoreeId = null;
+  let honoreeCache = {};
+
+  function getDefaultHonoreePhoto(category) {
+    return HONOREE_DEFAULT_IMAGES[category] || '';
+  }
+
+  function resetHonoreeForm() {
+    editingHonoreeId = null;
+    document.getElementById('honoreeCategory').value = 'gav-alba';
+    document.getElementById('honoreeName').value = '';
+    document.getElementById('honoreeRole').value = '';
+    document.getElementById('honoreePhoto').value = '';
+    document.getElementById('honoreeBio').value = '';
+    const addBtn = document.getElementById('honoreeSubmitBtn');
+    if (addBtn) addBtn.innerHTML = "<i class='bx bx-user-plus'></i> Нэмэх";
+    const msg = document.getElementById('honoreeMsg');
+    if (msg) msg.style.display = 'none';
+    document.getElementById('honoreeCancelBtn').style.display = 'none';
+  }
+
+  function editHonoree(id) {
+    const d = honoreeCache[id];
+    if (!d) return;
+    editingHonoreeId = id;
+    document.getElementById('honoreeCategory').value = d.category || 'gav-alba';
+    document.getElementById('honoreeName').value = d.name || '';
+    document.getElementById('honoreeRole').value = d.role || '';
+    document.getElementById('honoreePhoto').value = d.photo || '';
+    document.getElementById('honoreeBio').value = d.bio || '';
+    const msg = document.getElementById('honoreeMsg');
+    msg.style.display = 'block';
+    msg.style.color = 'var(--gold)';
+    msg.textContent = '✍️ Гавьяат хүний мэдээллийг засаж, дараа "Засах" товчийг дарна уу.';
+    const addBtn = document.getElementById('honoreeSubmitBtn');
+    if (addBtn) addBtn.innerHTML = "<i class='bx bx-save'></i> Засах";
+    document.getElementById('honoreeCancelBtn').style.display = 'inline-flex';
+  }
+
+  function addHonoree() {
+    const msg = document.getElementById('honoreeMsg');
+    msg.style.display = 'none';
+    const category = document.getElementById('honoreeCategory').value;
+    const name = document.getElementById('honoreeName').value.trim();
+    const role = document.getElementById('honoreeRole').value.trim();
+    const photo = document.getElementById('honoreePhoto').value.trim();
+    const bio = document.getElementById('honoreeBio').value.trim();
+
+    if (!name || !role || !bio) {
+      msg.style.display = 'block'; msg.style.color = '#e53935';
+      msg.textContent = '⚠️ Нэр, тушаал, намтрыг бөглөнө үү.';
+      return;
+    }
+    const photoValue = photo || getDefaultHonoreePhoto(category);
+    const payload = { category, name, role, photo: photoValue, bio };
+    const finishSuccess = (message) => {
+      msg.style.display = 'block'; msg.style.color = 'var(--gold)';
+      msg.textContent = message;
+      resetHonoreeForm();
+    };
+
+    if (editingHonoreeId) {
+      db.collection('honorees').doc(editingHonoreeId).update(payload).then(() => {
+        finishSuccess('✅ Амжилттай засагдлаа.');
+      }).catch(err => {
+        msg.style.display = 'block'; msg.style.color = '#e53935';
+        msg.textContent = `⚠️ Алдаа гарлаа: ${err.message}`;
+      });
+      return;
+    }
+
+    db.collection('honorees').add({
+      ...payload,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      finishSuccess('✅ Амжилттай нэмэгдлээ.');
+    }).catch(err => {
+      msg.style.display = 'block'; msg.style.color = '#e53935';
+      msg.textContent = `⚠️ Алдаа гарлаа: ${err.message}`;
+    });
+  }
+
+  function deleteHonoree(id) {
+    if (!confirm('Энэ хүнийг устгах уу?')) return;
+    db.collection('honorees').doc(id).delete().catch(err => alert('Устгахад алдаа гарлаа: ' + err.message));
+  }
+
+  let unsubHonorees = null;
+  function listenHonorees() {
+    if (unsubHonorees) unsubHonorees();
+    unsubHonorees = db.collection('honorees').orderBy('createdAt', 'desc').onSnapshot(snap => {
+      const body = document.getElementById('honoreesTableBody');
+      if (snap.empty) { body.innerHTML = '<tr class="empty-row"><td colspan="5">Одоогоор гавьяат хүн нэмэгдээгүй байна.</td></tr>'; return; }
+      body.innerHTML = snap.docs.map(doc => {
+        const d = doc.data();
+        honoreeCache[doc.id] = d;
+        return `<tr>
+          <td>${CATEGORY_LABELS[d.category] || d.category}</td>
+          <td>${d.name || '—'}</td>
+          <td>${d.role || '—'}</td>
+          <td>${fmtDate(d.createdAt)}</td>
+          <td>
+            <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;margin-right:6px;" onclick="editHonoree('${doc.id}')"><i class='bx bx-edit'></i></button>
+            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="deleteHonoree('${doc.id}')"><i class='bx bx-trash'></i></button>
+          </td>
+        </tr>`;
+      }).join('');
+    }, err => {
+      document.getElementById('honoreesTableBody').innerHTML = `<tr class="empty-row"><td colspan="5">Алдаа: ${err.message}</td></tr>`;
+    });
+  }
+
+  let unsubUsers = null, unsubFeedback = null;
+
+  async function grantAdminAccess(user) {
+    try {
+      const adminDoc = await db.collection('admins').doc(user.uid).get();
+      if (adminDoc.exists) return true;
+
+      const adminCountSnap = await db.collection('admins').limit(1).get();
+      if (!adminCountSnap.empty) return false;
+
+      await db.collection('admins').doc(user.uid).set({
+        email: user.email || '',
+        name: user.displayName || '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        autoGranted: true
+      });
+      return true;
+    } catch (e) {
+      console.error('Admin access grant failed:', e);
+      return false;
+    }
+  }
+
+  auth.onAuthStateChanged(async (user) => {
+    const gate = document.getElementById('adminGate');
+    const dash = document.getElementById('adminDashboard');
+    if (!user) {
+      gate.style.display = 'block';
+      dash.style.display = 'none';
+      if (unsubUsers) unsubUsers();
+      if (unsubFeedback) unsubFeedback();
+      if (unsubHonorees) unsubHonorees();
+      return;
+    }
+
+    let isAdmin = false;
+    try {
+      isAdmin = await grantAdminAccess(user);
+    } catch (e) {
+      isAdmin = false;
+    }
+
+    if (!isAdmin) {
+      const msg = document.getElementById('gateMsg');
+      msg.style.display = 'block'; msg.style.color = '#e53935';
+      msg.textContent = '⚠️ Танд админ эрх байхгүй байна. Одоогийн эрхтэй админаас нэмүүлнэ үү.';
+      gate.style.display = 'block';
+      dash.style.display = 'none';
+      auth.signOut();
+      return;
+    }
+
+    gate.style.display = 'none';
+    dash.style.display = 'block';
+    listenUsers();
+    listenFeedback();
+    listenHonorees();
+    db.collection('admins').get().then(s => document.getElementById('statAdmins').textContent = s.size);
+  });
+
+  function listenUsers() {
+    if (unsubUsers) unsubUsers();
+    unsubUsers = db.collection('users').orderBy('createdAt', 'desc').onSnapshot(snap => {
+      document.getElementById('statUsers').textContent = snap.size;
+      const body = document.getElementById('usersTableBody');
+      if (snap.empty) { body.innerHTML = '<tr class="empty-row"><td colspan="5">Бүртгэлтэй хэрэглэгч алга байна.</td></tr>'; return; }
+      body.innerHTML = snap.docs.map(doc => {
+        const d = doc.data();
+        const roleBadge = d.role === 'admin'
+          ? `<span class="badge-role badge-admin">Админ</span>`
+          : `<span class="badge-role badge-user">Хэрэглэгч</span>`;
+        return `<tr>
+          <td>${d.name || '—'}</td>
+          <td>${d.email || '—'}</td>
+          <td>${roleBadge}</td>
+          <td>${fmtDate(d.createdAt)}</td>
+          <td>${fmtDate(d.lastLoginAt)}</td>
+        </tr>`;
+      }).join('');
+    }, err => {
+      document.getElementById('usersTableBody').innerHTML = `<tr class="empty-row"><td colspan="5">Алдаа: ${err.message}</td></tr>`;
+    });
+  }
+
+  function listenFeedback() {
+    if (unsubFeedback) unsubFeedback();
+    unsubFeedback = db.collection('feedback').orderBy('createdAt', 'desc').onSnapshot(snap => {
+      document.getElementById('statFeedback').textContent = snap.size;
+      const body = document.getElementById('feedbackTableBody');
+      if (snap.empty) { body.innerHTML = '<tr class="empty-row"><td colspan="5">Санал хүсэлт ирээгүй байна.</td></tr>'; return; }
+      body.innerHTML = snap.docs.map(doc => {
+        const d = doc.data();
+        return `<tr>
+          <td>${d.name || '—'}</td>
+          <td>${d.email || '—'}</td>
+          <td>${d.subject || '—'}</td>
+          <td style="max-width:280px;white-space:pre-wrap;">${d.message || '—'}</td>
+          <td>${fmtDate(d.createdAt)}</td>
+        </tr>`;
+      }).join('');
+    }, err => {
+      document.getElementById('feedbackTableBody').innerHTML = `<tr class="empty-row"><td colspan="5">Алдаа: ${err.message}</td></tr>`;
+    });
+  }
+</script>
+</body>
+</html>
